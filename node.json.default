@@ -1,0 +1,36 @@
+{
+    "target": "production",
+    "port": "80",
+    "nginx": {
+        "server_name": "djangotests",
+        "log_root": "/var/log/nginx"
+    },
+    "static_root": "/djangotests/static",
+    "media_root": "/djangotests/media",
+    "postgresql": {
+        "password": {
+            "postgres": "..."
+        },
+        "server": {
+            "packages": ["postgresql"]
+        }
+    },
+    "dbname": "djangotests",
+    "project_dir": "/djangotests",
+    "synced_folder": "../djangotests",
+    "virtualenv_name": "djangotests",
+    "owner": "vagrant",
+    "group": "vagrant",
+    "gunicorn": {
+        "log_root": "/var/log/gunicorn",
+        "project_name": "djangotests"
+    },
+    "django": {
+        "admin": {
+            "login": "admin",
+            "email": "...",
+            "pass": "..."
+        }
+    },
+    "run_list": ["recipe[djangoapp]"]
+}
