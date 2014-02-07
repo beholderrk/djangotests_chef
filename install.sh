@@ -16,4 +16,4 @@ if ! test -f "$chef_binary"; then
     gem install --no-rdoc --no-ri chef
 fi &&
 
-# chef-solo -c solo.rb
+chef-solo -c solo.rb
