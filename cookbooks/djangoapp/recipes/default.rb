@@ -1,4 +1,4 @@
-include_recipe 'apt'
+# include_recipe 'apt'
 include_recipe 'build-essential'
 # include_recipe 'openssl'
 include_recipe 'postgresql::server'
@@ -7,8 +7,20 @@ include_recipe 'git'
 include_recipe 'database::postgresql'
 include_recipe 'python'
 
+user "#{node[:owner]}" do
+    gid "#{node[:group]}"
+    home "#{node[:ownerhome]}"
+    shell "/bin/bash"
+end
+
+directory "#{node[:ownerhome]}" do
+    owner "#{node[:owner]}"
+    group "#{node[:group]}"
+    mode 0775
+end
+
 # create a postgresql database
-postgresql_database 'djangotests' do
+postgresql_database "#{node[:dbname]}" do
   connection(
     :host      => '127.0.0.1',
     :port      => 5432,
@@ -18,13 +30,13 @@ postgresql_database 'djangotests' do
   action :create
 end
 
-directory "/home/#{node[:owner]}/envs" do
+directory "#{node[:ownerhome]}/envs" do
     owner "#{node[:owner]}"
     group "#{node[:group]}"
     mode 0775
 end
 
-virtualenv_dir = "/home/#{node[:owner]}/envs/#{node[:virtualenv_name]}"
+virtualenv_dir = "#{node[:ownerhome]}/envs/#{node[:virtualenv_name]}"
 
 virtualenv virtualenv_dir do
     owner "#{node[:owner]}"
@@ -114,13 +126,6 @@ if node["target"] == "production"
         action :install
     end
 
-    service "nginx" do
-        enabled true
-        running true
-        supports :status => true, :restart => true, :reload => true
-        action [:start, :enable]
-    end
-
     file "/etc/nginx/sites-available/default" do
         action :delete
     end
@@ -134,7 +139,7 @@ if node["target"] == "production"
         mode 0640
         owner "root"
         group "root"
-        notifies :restart, resources(:service => "nginx")
+        # notifies :restart, resources(:service => "nginx")
     end
 
     link "/etc/nginx/sites-enabled/#{node[:nginx][:server_name]}.conf" do
@@ -146,7 +151,14 @@ if node["target"] == "production"
         mode 0640
         owner "root"
         group "root"
-        notifies :restart, resources(:service => "nginx")
+        # notifies :restart, resources(:service => "nginx")
+    end
+
+    service "nginx" do
+        enabled true
+        running true
+        supports :status => true, :restart => true, :reload => true
+        action [:start, :enable]
     end
 
     directory "#{node[:static_root]}" do
@@ -165,3 +177,14 @@ if node["target"] == "production"
     end
 end
 
+bash 'celery' do
+    user "#{node[:owner]}"
+    group "#{node[:group]}"
+    code <<-EOH
+#{activate_env}
+#{to_project}
+./start_workers.sh
+EOF
+EOH
+    not_if "ps ax | grep \"celery worker -A #{node[:gunicorn][:project_name]}\""
+end

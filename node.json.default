@@ -21,6 +21,7 @@
     "virtualenv_name": "djangotests",
     "owner": "vagrant",
     "group": "vagrant",
+    "ownerhome": "/home/vagrant",
     "gunicorn": {
         "log_root": "/var/log/gunicorn",
         "project_name": "djangotests"
