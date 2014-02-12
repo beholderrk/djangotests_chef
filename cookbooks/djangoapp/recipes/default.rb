@@ -58,6 +58,9 @@ if node["target"] == "production"
         user "#{node[:owner]}"
         group "#{node[:group]}"
         action :sync
+        notifies :restart, "service[#{node[:gunicorn][:project_name]}-gunicorn]", :delayed
+        notifies :restart, "service[celeryd]", :delayed
+        notifies :restart, "service[celeryflower]", :delayed
     end
 end
 
@@ -177,14 +180,63 @@ if node["target"] == "production"
     end
 end
 
-bash 'celery' do
-    user "#{node[:owner]}"
-    group "#{node[:group]}"
-    code <<-EOH
-#{activate_env}
-#{to_project}
-./start_workers.sh
-EOF
-EOH
-    not_if "ps ax | grep \"celery worker -A #{node[:gunicorn][:project_name]}\""
+package "rabbitmq-server" do
+    action :install
 end
+
+template "/etc/default/celeryd" do
+    source "celeryd.conf"
+    owner "root"
+    group "root"
+    mode 0644
+end
+
+cookbook_file "/etc/init.d/celeryd" do
+    source "celeryd"
+    owner "root"
+    group "root"
+    mode 0755
+end
+
+service "celeryd" do
+    enabled true
+    running true
+    supports :status => true, :restart => true, :reload => true
+    action [:start, :enable]
+end
+
+# bash 'celery' do
+#     user "root"
+#     group "root"
+#     code "sudo /etc/init.d/celeryd restart"
+#     not_if "ps ax | grep 'celery worker -A #{node[:gunicorn][:project_name]}' | grep -v grep"
+# end
+
+template "#{node[:project_dir]}/start_celeryflower.sh" do 
+    source "start_celeryflower.sh"
+    owner "#{node[:owner]}"
+    group "#{node[:group]}"
+    mode 0755
+end
+
+template "/etc/init/celeryflower.conf" do
+    source "celeryflower.conf"
+    owner "root"
+    group "root"
+    mode 0644
+end
+
+bash "enable_rmq_managment" do
+    user "root"
+    code "/usr/lib/rabbitmq/lib/rabbitmq_server-2.7.1/sbin/rabbitmq-plugins enable rabbitmq_management"
+    not_if "/usr/lib/rabbitmq/lib/rabbitmq_server-2.7.1/sbin/rabbitmq-plugins list -E | grep rabbitmq_management"
+end
+
+service "celeryflower" do
+    provider Chef::Provider::Service::Upstart
+    enabled true
+    running true
+    supports :status => true, :restart => true, :reload => true
+    action [:start, :enable]
+end
+

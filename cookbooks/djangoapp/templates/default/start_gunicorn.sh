@@ -12,6 +12,6 @@ cd <%= node[:project_dir] %>
 source <%= node[:ownerhome] %>/envs/<%= node[:virtualenv_name] %>/bin/activate
 touch $LOGFILE
 # chown $USER:$GROUP $LOGFILE
-gunicorn djangotests.wsgi:application -b 0.0.0.0:8000 -w $NUM_WORKERS \
+gunicorn djangotests.wsgi:application -b localhost:8000 -w $NUM_WORKERS \
 --user=$USER --group=$GROUP \
 --log-file=/var/log/gunicorn/djangotests.log --log-level=debug

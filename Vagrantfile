@@ -7,7 +7,7 @@ VAGRANTFILE_API_VERSION = "2"
 require 'json'
 
 # Load node.json
-f = File.new 'node.json'
+f = File.new 'node_vagrant.json'
 s = f.read
 f.close
 
@@ -39,6 +39,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # your network.
   # config.vm.network :public_network
   config.vm.network :forwarded_port, guest: j["port"], host: 8005
+  config.vm.network :forwarded_port, guest: 5555, host: 5555
 
   # If true, then any SSH connections made will enable agent forwarding.
   # Default value: false
