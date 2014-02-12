@@ -2,7 +2,7 @@
 #set -e
 LOGFILE=<%= node[:gunicorn][:log_root] %>/<%= node[:gunicorn][:project_name] %>.log
 LOGDIR=$(dirname $LOGFILE)
-NUM_WORKERS=3
+NUM_WORKERS=1
 
 # user/group to run as
 USER=<%= node[:owner] %>
