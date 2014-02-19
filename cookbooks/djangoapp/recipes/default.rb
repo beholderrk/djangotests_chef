@@ -96,35 +96,36 @@ EOH
     not_if "sudo -u postgres psql -d #{node[:dbname]} -c 'select * from auth_user' | grep #{node[:django][:admin][:login]}"
 end
 
-template "#{node[:project_dir]}/start_gunicorn.sh" do
-    source "start_gunicorn.sh"
-    owner "#{node[:owner]}"
-    group "#{node[:group]}"
-    mode 0755
-end
-
-directory "#{node[:gunicorn][:log_root]}" do
-    owner "#{node[:owner]}"
-    group "#{node[:group]}"
-    mode 0775
-end
-
-template "/etc/init/#{node[:gunicorn][:project_name]}-gunicorn.conf" do
-    source "gunicorn.conf"
-    owner "root"
-    group "root"
-    mode 0644
-end
-
-service "#{node[:gunicorn][:project_name]}-gunicorn" do
-    provider Chef::Provider::Service::Upstart
-    enabled true
-    running true
-    supports :restart => true, :reload => true, :status => true
-    action [:enable, :start]
-end
-
 if node["target"] == "production"
+    template "#{node[:project_dir]}/start_gunicorn.sh" do
+        source "start_gunicorn.sh"
+        owner "#{node[:owner]}"
+        group "#{node[:group]}"
+        mode 0755
+    end
+
+    directory "#{node[:gunicorn][:log_root]}" do
+        owner "#{node[:owner]}"
+        group "#{node[:group]}"
+        mode 0775
+    end
+
+    template "/etc/init/#{node[:gunicorn][:project_name]}-gunicorn.conf" do
+        source "gunicorn.conf"
+        owner "root"
+        group "root"
+        mode 0644
+    end
+
+    service "#{node[:gunicorn][:project_name]}-gunicorn" do
+        provider Chef::Provider::Service::Upstart
+        enabled true
+        running true
+        supports :restart => true, :reload => true, :status => true
+        action [:enable, :start]
+    end
+
+
     package "nginx" do
         action :install
     end
@@ -177,6 +178,16 @@ if node["target"] == "production"
             #{to_project}
             python manage.py collectstatic --noinput
         EOH
+    end
+elsif node["target"] == "developer"
+    bash 'runserver' do
+        user "#{node[:owner]}"
+        code <<-EOH
+            #{activate_env}
+            #{to_project}
+            python manage.py runserver 0.0.0.0:8000
+        EOH
+        not_if 'ps ax | grep "python manage.py runserver" | grep -v grep'
     end
 end
 
